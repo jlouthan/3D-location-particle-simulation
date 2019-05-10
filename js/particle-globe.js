@@ -89,17 +89,8 @@ function randomVertInClouds() {
   );
 }
 
-let tempZoomPoint;
 for (let i = 0; i < NUM_PARTICLES; i++) {
-  // particleGeo.vertices.push(randomVertInClouds());
-  // TODO remove this and use line above, it's just temporary
-  let par = randomVertInClouds();
-  particleGeo.vertices.push(par);
-  if (i == 4) {
-    tempZoomPoint = par;
-    console.log(tempZoomPoint);
-  }
-
+  particleGeo.vertices.push(randomVertInClouds());
 };
 let particlesCloud = new THREE.Points(particleGeo, particleMat);
 cloudMesh.add(particlesCloud);
@@ -136,14 +127,38 @@ document.body.onclick = function () {
   // Testing zoom into given lat/long
   isRotating = false;
 
+  // Create point from lat/long
+  const edmondLat = 35.657295;
+  const edmondLong = -97.478256;
+  let zoomPoint = spherePointFromLatLong(edmondLat, edmondLong);
   // Zoom into pre-defined point
-  // TODO zoom into point repping a lat-long
   // TODO chain a Tween zoom out
-  let rotation = zoomIntoPoint(tempZoomPoint);
+  let rotation = zoomIntoPoint(zoomPoint);
   rotation.start();
 
-  // camera.lookAt(tempZoomPoint);
+  // camera.lookAt(zoomPoint);
   // camera.lookAt(0, 0, 1);
+}
+
+// Returns Vector3 point on surface of earth mesh from
+// given lat, long
+function spherePointFromLatLong(lat, long) {
+  // TODO my formula doesn't work :( Find out why???
+  // let y = Math.cos(lat) * CLOUD_RAD;
+  // let x = (Math.tan(long) * CLOUD_RAD - Math.tan(long) * y)
+  //   / (1 + Math.tan(long));
+  // let z = x / Math.tan(long);
+  // // return new THREE.Vector3(x, y, z);
+  // console.log("my result is: ", new THREE.Vector3(x, y, z));
+
+  // Formula from https://stackoverflow.com/questions/28365948/javascript-latitude-longitude-to-xyz-position-on-earth-threejs
+  var phi   = (90 - lat) * (Math.PI/180);
+  var theta = (long + 180) * (Math.PI/180);
+  let radius = CLOUD_RAD;
+  let x = -((radius) * Math.sin(phi) * Math.cos(theta));
+  let z = ((radius) * Math.sin(phi) * Math.sin(theta));
+  let y = ((radius) * Math.cos(phi));
+  return new THREE.Vector3(x, y, z);
 }
 
 // Given a Vector3 point on the sphere, return Tween that spins
@@ -157,7 +172,7 @@ function zoomIntoPoint(focusPoint) {
   let endQuant = new THREE.Quaternion();
   let pointCameraLooksAt = new THREE.Vector3(0, 0, 1);
   endQuant.setFromUnitVectors(
-    tempZoomPoint.clone().normalize(),
+    focusPoint.clone().normalize(),
     pointCameraLooksAt.clone().normalize()
   );
 
