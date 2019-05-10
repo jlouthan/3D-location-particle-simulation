@@ -89,8 +89,17 @@ function randomVertInClouds() {
   );
 }
 
+let tempZoomPoint;
 for (let i = 0; i < NUM_PARTICLES; i++) {
-  particleGeo.vertices.push(randomVertInClouds());
+  // particleGeo.vertices.push(randomVertInClouds());
+  // TODO remove this and use line above, it's just temporary
+  let par = randomVertInClouds();
+  particleGeo.vertices.push(par);
+  if (i == 4) {
+    tempZoomPoint = par;
+    console.log(tempZoomPoint);
+  }
+
 };
 let particlesCloud = new THREE.Points(particleGeo, particleMat);
 cloudMesh.add(particlesCloud);
@@ -99,15 +108,68 @@ cloudMesh.add(particlesCloud);
 // Render and update loop
 let clock = new THREE.Clock();
 
+// TODO make these nicer
+let isRotating = true;
+let isZooming = false;
 function render(){
   requestAnimationFrame(render);
 
   let timeDelta = clock.getDelta(); // in seconds
-  // Rotate Earth
-  earthMesh.rotateY( 1/5 * timeDelta );
-  // Rotate clouds
-  cloudMesh.rotateY( 1/3 * timeDelta);
-
+  if (isRotating) {
+    // Rotate Earth
+    earthMesh.rotateY( 1/5 * timeDelta );
+    // Rotate clouds
+    cloudMesh.rotateY( 1/3 * timeDelta);
+  }
+  if (isZooming) {
+    camera.position.z -= 0.007;
+    if (camera.position.z <= 1.005) {
+      isZooming = false;
+    }
+  }
   renderer.render(scene, camera);
+  TWEEN.update();
 }
 render();
+
+document.body.onclick = function () {
+  // Testing zoom into given lat/long
+  isRotating = false;
+
+  // Zoom into pre-defined point
+  // TODO zoom into point repping a lat-long
+  // TODO chain a Tween zoom out
+  let rotation = zoomIntoPoint(tempZoomPoint);
+  rotation.start();
+
+  // camera.lookAt(tempZoomPoint);
+  // camera.lookAt(0, 0, 1);
+}
+
+// Given a Vector3 point on the sphere, return Tween that spins
+// the world around so that point is facing camera, then zoom
+// camera into the point
+// Rotation code adapted from https://discourse.threejs.org/t/solved-using-quaternions-approach-to-rotate-sphere-from-clicked-point-towards-static-point/3272/8
+function zoomIntoPoint(focusPoint) {
+  let startQuant = new THREE.Quaternion();
+  startQuant.copy(earthMesh.quaternion).normalize();
+
+  let endQuant = new THREE.Quaternion();
+  let pointCameraLooksAt = new THREE.Vector3(0, 0, 1);
+  endQuant.setFromUnitVectors(
+    tempZoomPoint.clone().normalize(),
+    pointCameraLooksAt.clone().normalize()
+  );
+
+  let euler = new THREE.Euler();
+  return new TWEEN.Tween(startQuant).to(endQuant, 2000)
+    // .delay(500)
+    .easing(TWEEN.Easing.Exponential.InOut)
+    .onUpdate(function () {
+      euler.setFromQuaternion(startQuant);
+      earthMesh.setRotationFromEuler(euler);
+    })
+    .onComplete(function () {
+      isZooming = true;
+    });
+}
