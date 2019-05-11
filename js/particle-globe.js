@@ -80,6 +80,7 @@ function vertInClouds(point, surfaceOffset) {
   );
 }
 
+let initialPositions = [];
 for (let i = 0; i < NUM_PARTICLES; i++) {
 
   // Get random point in cloud bounding box
@@ -91,7 +92,9 @@ for (let i = 0; i < NUM_PARTICLES; i++) {
   Math.random() * (cloudMax.z - cloudMin.z);
   let randomPos = new THREE.Vector3(x, y, z);
   // Project it into the clouds and add to mesh
-  particleGeo.vertices.push(vertInClouds(randomPos, 0.01));
+  let particlePos = vertInClouds(randomPos, 0.01);
+  initialPositions.push(particlePos);
+  particleGeo.vertices.push(particlePos);
 
 };
 let particlesCloud = new THREE.Points(particleGeo, particleMat);
@@ -112,8 +115,13 @@ let isZoomedIn = false;
 let expandingParticles = false;
 let expansionOffset = 0;
 const EXPANSION_MAX = 0.2;
+let shrinkingParticles = false;
+let shrinkingOffset = EXPANSION_MAX;
+const SHRINKING_MIN = 0.01
 // TODO in the end, after all animation, particles expand out infinitely and
 // become stars!
+
+let initialFacingCamera = new THREE.Vector3(0, 0, 1);
 
 function render(){
   requestAnimationFrame(render);
@@ -137,7 +145,44 @@ function render(){
     if (camera.position.z >= 1.505) {
       isZoomingOut = false;
       // We're zoomed back out, undo the rotation
-      let rotation = spinToPoint(zoomPoint.clone(), new THREE.Vector3(0, 0, 1));
+      // TODO this doesn't go back to where it should...
+      let rotation = spinToPoint(
+        zoomPoint.clone(),
+        // new THREE.Vector3(0, 0, 1)
+        earthMesh.worldToLocal(new THREE.Vector3(0, 0, 1))
+      );
+
+      // TODO refactor so there's not so much repeated here ad in swarm code
+      let lineCurves = [];
+      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
+        let startPoint = particlesCloud.geometry.vertices[i];
+        // TODO could be replaced with simple updates in the render loop. Is that
+        // better or should I use Tween for everything for consistency??
+        // Create a 3d line segment between the two points.
+        lineCurves.push(
+          new THREE.LineCurve3(startPoint.clone(), initialPositions[i].clone())
+        );
+      }
+      // For each timestep, move the points to the spots along the line for
+      // that timestep, projected onto the clouds
+      let amountAbove = 0.02;
+      let animation = new TWEEN.Tween({t: 0}).to({t: 1}, 1000)
+        // .easing(TWEEN.Easing.Exponential.InOut)
+        .onUpdate(function (obj) {
+          for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
+            let newPos = vertInClouds(
+              lineCurves[i].getPoint(obj.t),
+              amountAbove + obj.t * (EXPANSION_MAX - amountAbove)
+            );
+            particlesCloud.geometry.vertices[i] = newPos;
+          }
+          particlesCloud.geometry.verticesNeedUpdate = true;
+        });
+
+      animation
+        .onComplete(function () {
+          shrinkingParticles = true;
+        }).start();
       rotation
         .onComplete(function () {
           isRotating = true;
@@ -159,6 +204,19 @@ function render(){
       particlesCloud.geometry.verticesNeedUpdate = true
     }
   }
+  if (shrinkingParticles) {
+    if (shrinkingOffset <= SHRINKING_MIN) {
+      shrinkingParticles = false;
+      shrinkingOffset = EXPANSION_MAX;
+    } else {
+      shrinkingOffset -= 0.009;
+      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
+        let particlePos = particlesCloud.geometry.vertices[i];
+        particlesCloud.geometry.vertices[i] = vertInClouds(particlePos, shrinkingOffset);
+      }
+      particlesCloud.geometry.verticesNeedUpdate = true
+    }
+  }
   renderer.render(scene, camera);
   TWEEN.update();
 }
@@ -170,8 +228,13 @@ const edmondLong = -97.478256;
 let zoomPoint = spherePointFromLatLong(edmondLat, edmondLong);
 document.body.onclick = function () {
 
-  expandingParticles = true;
-  expansionOffset = 0;
+  if (isZoomedIn == false) {
+    expandingParticles = true;
+    expansionOffset = 0;
+  } else {
+    isZoomingOut = true;
+    isZoomedIn = false;
+  }
 
   // camera.lookAt(zoomPoint);
   // camera.lookAt(0, 0, 1);
@@ -206,7 +269,7 @@ function spinToPoint(startPoint, endPoint) {
   let euler = new THREE.Euler();
   return new TWEEN.Tween(startQuant).to(endQuant, 1500)
     // .delay(500)
-    .easing(TWEEN.Easing.Exponential.InOut)
+    // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function () {
       euler.setFromQuaternion(startQuant);
       earthMesh.setRotationFromEuler(euler);
@@ -245,7 +308,12 @@ function swarmParticlesToPoint(point) {
       particlesCloud.geometry.verticesNeedUpdate = true;
     });
 
-  let rotation = spinToPoint(new THREE.Vector3(0, 0, 1), zoomPoint.clone());
+  let rotation = spinToPoint(
+    // earthMesh.worldToLocal(new THREE.Vector3(0, 0, 1)),
+    // earthPointFacingCamera(),
+    new THREE.Vector3(0, 0 , 1),
+    zoomPoint.clone()
+  );
   rotation.onComplete(function () {
     isZooming = true;
   });
