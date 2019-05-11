@@ -2,26 +2,26 @@
 // http://learningthreejs.com/blog/2013/09/16/how-to-make-the-earth-in-webgl/
 // http://blog.mastermaps.com/2013/09/creating-webgl-earth-with-threejs.html
 // https://www.delimited.io/blog/2015/5/16/interactive-webgl-globes-with-threejs-and-d3
-
+// http://bl.ocks.org/MaciejKus/61e9ff1591355b00c1c1caf31e76a668
 
 // d3 map stuff!
-var projection = d3.geoEquirectangular()
+let projection = d3.geoEquirectangular()
   .translate([512, 256])
   .scale(163);
 
 d3.json('data/combined2.json').then(function (data) {
 
-  var countries = topojson.feature(data, data.objects.countries);
-  var states = topojson.feature(data, data.objects.states);
+  let countries = topojson.feature(data, data.objects.countries);
+  let states = topojson.feature(data, data.objects.states);
 
-  var canvas = d3.select("body").append("canvas")
+  let canvas = d3.select("body").append("canvas")
     .style("display", "none")
     .attr("width", "1024px")
     .attr("height", "512px");
 
-  var context = canvas.node().getContext("2d");
+  let context = canvas.node().getContext("2d");
 
-  var path = d3.geoPath()
+  let path = d3.geoPath()
     .projection(projection).context(context);
 
   context.strokeStyle = "#333";
@@ -62,14 +62,16 @@ document.body.appendChild(renderer.domElement);
 
 // Add some light
 // TODO: play with this so it's not exactly same as demo
-var light	= new THREE.AmbientLight(0x888888);
+let light	= new THREE.AmbientLight(0x888888);
 scene.add(light);
-var light	= new THREE.DirectionalLight(0xcccccc, 0.5);
-light.position.set(5, 3, 5);
-scene.add(light);
+let dirLight	= new THREE.DirectionalLight(0xcccccc, 0.5);
+dirLight.position.set(5, 3, 5);
+scene.add(dirLight);
 
 // Create and add the Earth
 let earthGeo = new THREE.SphereGeometry(EARTH_RAD, 32, 32);
+
+// Begin topo map code
 // let earthMat  = new THREE.MeshPhongMaterial({
 //   map: new THREE.TextureLoader().load('images/earthmap1k.jpg'),
 //   bumpMap: new THREE.TextureLoader().load('images/earthbump1k.jpg'),
@@ -77,12 +79,24 @@ let earthGeo = new THREE.SphereGeometry(EARTH_RAD, 32, 32);
 //   specularMap: new THREE.TextureLoader().load('images/earthspec1k.jpg'),
 //   specular: new THREE.Color('grey')
 // });
-let earthTexture =  new THREE.Texture(canvas.node());
-earthTexture.needsUpdate = true;
-let earthMat = new THREE.MeshBasicMaterial({
-  map: earthTexture
-  // transparent: true
+// End topo map code
+
+// Begin drawn map code
+// Add base to make water blue
+let waterMat = new THREE.MeshBasicMaterial({
+  color: 0x4b7ccc,
+  transparent: true
 });
+let waterMesh = new THREE.Mesh(earthGeo, waterMat);
+scene.add(waterMesh);
+
+// Add map drawn offscreen on canvas
+let earthMat = new THREE.MeshBasicMaterial({
+  map: new THREE.Texture(canvas.node()),
+  transparent: true
+});
+earthMat.map.needsUpdate = true;
+// End drawn map code
 
 let earthMesh = new THREE.Mesh(earthGeo, earthMat);
 scene.add(earthMesh)
@@ -171,14 +185,16 @@ function render(){
 
   let timeDelta = clock.getDelta(); // in seconds
   if (isRotating) {
+    // Rotate Water
+    waterMesh.rotateY(1/5 * timeDelta);
     // Rotate Earth
-    earthMesh.rotateY( 1/5 * timeDelta );
+    earthMesh.rotateY(1/5 * timeDelta);
     // Rotate clouds
-    cloudMesh.rotateY( 1/3 * timeDelta);
+    cloudMesh.rotateY(1/3 * timeDelta);
   }
   if (isZooming) {
     camera.position.z -= 0.007;
-    if (camera.position.z <= 1.005) {
+    if (camera.position.z <= 1.1) {
       isZooming = false;
       isZoomedIn = true;
     }
@@ -316,6 +332,7 @@ function spinToPoint(startPoint, endPoint) {
     .onUpdate(function () {
       euler.setFromQuaternion(startQuant);
       earthMesh.setRotationFromEuler(euler);
+      waterMesh.setRotationFromEuler(euler);
     });
 }
 
