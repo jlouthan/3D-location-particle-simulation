@@ -39,38 +39,11 @@ dirLight.position.set(5, 3, 5);
 scene.add(dirLight);
 
 // Create and add the Earth
-let earthGeo = new THREE.SphereGeometry(EARTH_RAD, 32, 32);
-
-// Begin topo map code
-// let earthMat  = new THREE.MeshPhongMaterial({
-//   map: new THREE.TextureLoader().load('images/earthmap1k.jpg'),
-//   bumpMap: new THREE.TextureLoader().load('images/earthbump1k.jpg'),
-//   bumpScale: 0.05,
-//   specularMap: new THREE.TextureLoader().load('images/earthspec1k.jpg'),
-//   specular: new THREE.Color('grey')
-// });
-// End topo map code
-
-// Begin drawn map code
-// Add base to make water blue
-let waterMat = new THREE.MeshBasicMaterial({
-  color: 0x4b7ccc,
-  transparent: true
-});
-let waterMesh = new THREE.Mesh(earthGeo, waterMat);
-scene.add(waterMesh);
-
-// Add map drawn offscreen on canvas
-let earthMat = new THREE.MeshBasicMaterial({
-  map: new THREE.Texture(worldMap.canvas.node()),
-  transparent: true
-});
-earthMat.map.needsUpdate = true;
-// End drawn map code
-
-let earthMesh = new THREE.Mesh(earthGeo, earthMat);
-scene.add(earthMesh)
-// earthMesh.material.needsUpdate = true;
+let earth = new Earth(EARTH_RAD, false, worldMap.canvas);
+if (earth.waterMesh) {
+  scene.add(earth.waterMesh);
+}
+scene.add(earth.mesh);
 
 // Create and add the clouds
 let cloudGeo = new THREE.SphereGeometry(CLOUD_RAD, 32, 32)
@@ -82,7 +55,8 @@ let cloudMat  = new THREE.MeshPhongMaterial({
   // depthWrite  : false,
 });
 var cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-earthMesh.add(cloudMesh)
+// earthMesh.add(cloudMesh)
+earth.mesh.add(cloudMesh)
 
 // Create and add some particles among the clouds
 let particleGeo = new THREE.Geometry();
@@ -128,7 +102,8 @@ let particlesCloud = new THREE.Points(particleGeo, particleMat);
 // TODO must add to earth so swarming and rotating go to same point, but now
 // particles don't move with clouds. Fix somehow?
 // cloudMesh.add(particlesCloud);
-earthMesh.add(particlesCloud);
+// earthMesh.add(particlesCloud);
+earth.mesh.add(particlesCloud);
 
 
 // Render and update loop
@@ -156,9 +131,12 @@ function render(){
   let timeDelta = clock.getDelta(); // in seconds
   if (isRotating) {
     // Rotate Water
-    waterMesh.rotateY(1/5 * timeDelta);
+    // waterMesh.rotateY(1/5 * timeDelta);
+    // // Rotate Earth
+    // earthMesh.rotateY(1/5 * timeDelta);
+    earth.waterMesh.rotateY(1/5 * timeDelta);
     // Rotate Earth
-    earthMesh.rotateY(1/5 * timeDelta);
+    earth.mesh.rotateY(1/5 * timeDelta);
     // Rotate clouds
     cloudMesh.rotateY(1/3 * timeDelta);
   }
@@ -178,7 +156,7 @@ function render(){
       let rotation = spinToPoint(
         zoomPoint.clone(),
         // new THREE.Vector3(0, 0, 1)
-        earthMesh.worldToLocal(new THREE.Vector3(0, 0, 1))
+        earth.mesh.worldToLocal(new THREE.Vector3(0, 0, 1))
       );
 
       // TODO refactor so there's not so much repeated here ad in swarm code
@@ -287,7 +265,7 @@ function spherePointFromLatLong(lat, long) {
 // Rotation code adapted from https://discourse.threejs.org/t/solved-using-quaternions-approach-to-rotate-sphere-from-clicked-point-towards-static-point/3272/8
 function spinToPoint(startPoint, endPoint) {
   let startQuant = new THREE.Quaternion();
-  startQuant.copy(earthMesh.quaternion).normalize();
+  startQuant.copy(earth.mesh.quaternion).normalize();
 
   let endQuant = new THREE.Quaternion();
   endQuant.setFromUnitVectors(
@@ -301,8 +279,8 @@ function spinToPoint(startPoint, endPoint) {
     // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function () {
       euler.setFromQuaternion(startQuant);
-      earthMesh.setRotationFromEuler(euler);
-      waterMesh.setRotationFromEuler(euler);
+      earth.mesh.setRotationFromEuler(euler);
+      earth.waterMesh.setRotationFromEuler(euler);
     });
 }
 
