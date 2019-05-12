@@ -90,62 +90,84 @@ worldMap.createDrawing().then(function () {
 });
 
 // Create global point from lat/long
-const edmondLat = 35.657295;
-const edmondLong = -97.478256;
-let zoomPoint = spherePointFromLatLong(edmondLat, edmondLong);
+// const edmondLat = 35.657295;
+// const edmondLong = -97.478256;
+// let zoomPoint = spherePointFromLatLong(edmondLat, edmondLong);
+const budaLat = 47.49801;
+const budaLong = 19.03991;
+const nolaLat = 29.951065;
+const nolaLong = -90.071533;
+const pdxLat = 45.523064;
+const pdxLong = -122.676483;
+let zoomPoint = spherePointFromLatLong(pdxLat, pdxLong);
+let zoomPoint2 = spherePointFromLatLong(nolaLat, nolaLong);
+let count = 0;
 document.body.onclick = function () {
 
   if (!isZoomedIn) {
-    // TODO make making this array neater, possible in sep function
-    let pointDestinations = []
-    for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
-      pointDestinations.push(particleCloud.vertInClouds(zoomPoint.clone(), AMOUNT_POINT_ABOVE));
+    if (count % 2 == 0) {
+      animateToPoint(zoomPoint);
+    } else {
+      animateToPoint(zoomPoint2);
     }
-
-    // Expand the particles
-    expandParticles(0, EXPANSION_MAX, true)
-      .onComplete(function () {
-        isRotating = false;
-        // Then rotate Earth and swarm to point simultaneously
-        spinToPoint(new THREE.Vector3(0, 0 , 1), zoomPoint.clone(), true);
-        swarmParticlesToPoints(
-          pointDestinations,
-          EXPANSION_MAX,
-          AMOUNT_POINT_ABOVE,
-          true
-        ).onComplete(function () {
-          // Finally zoom in
-          zoomCamera(1.1, true, true);
-        });
-      });
-
   } else {
     // Zoom out
-    zoomCamera(1.5, false, true)
-      .onComplete(function () {
-        isZoomedIn = false;
-        // Swarm back to starting positions
-        swarmParticlesToPoints(
-          particleCloud.initialPositions,
-          AMOUNT_POINT_ABOVE,
-          EXPANSION_MAX,
-          true
-        ).onComplete(function () {
-          // Shrink particles
-          expandParticles(EXPANSION_MAX, 0, true);
-        });
-        // Spin back to normal perspective
-        spinToPoint(
-          zoomPoint.clone(),
-          // new THREE.Vector3(0, 0, 1)
-          earth.mesh.worldToLocal(new THREE.Vector3(0, 0, 1)),
-          true,
-        ).onComplete(function () {
-          isRotating = true;
-        });
-      });
+    if (count % 2 == 0) {
+      animateAwayFromPoint(zoomPoint);
+    } else {
+      animateAwayFromPoint(zoomPoint2);
+    }
+    count++;
   }
 
+}
+
+function animateToPoint(point) {
+  let pointDestinations =
+    particleCloud.getCopiesOfPointInClouds(point.clone(), AMOUNT_POINT_ABOVE);
+
+  // Expand the particles
+  particleCloud.expand(0, EXPANSION_MAX, true)
+    .onComplete(function () {
+      isRotating = false;
+      // Then rotate Earth and swarm to point simultaneously
+      spinToPoint(new THREE.Vector3(0, 0 , 1), point.clone(), true);
+      particleCloud.swarmToPoints(
+        pointDestinations,
+        EXPANSION_MAX,
+        AMOUNT_POINT_ABOVE,
+        true
+      ).onComplete(function () {
+        // Finally zoom in
+        zoomCamera(1.1, true, true);
+      });
+    });
+}
+
+function animateAwayFromPoint(point) {
+  zoomCamera(1.5, false, true)
+    .onComplete(function () {
+      isZoomedIn = false;
+      // Swarm back to starting positions
+      particleCloud.swarmToPoints(
+        particleCloud.initialPositions,
+        AMOUNT_POINT_ABOVE,
+        EXPANSION_MAX,
+        true
+      ).onComplete(function () {
+        // Shrink particles
+        particleCloud.expand(EXPANSION_MAX, 0, true);
+      });
+      // Spin back to normal perspective
+      spinToPoint(
+        point.clone(),
+        // new THREE.Vector3(0, 0, 1)
+        earth.mesh.worldToLocal(new THREE.Vector3(0, 0, 1)),
+        true,
+      ).onComplete(function () {
+        isRotating = true;
+      });
+    });
 }
 
 // Returns Vector3 point on surface of earth mesh from
@@ -189,39 +211,6 @@ function spinToPoint(startPoint, endPoint, startNow) {
   return spinAnimation;
 }
 
-// Takes an array of Vector3 point on the sphere and returns Tween animation
-// particle i swarming to point i. Particles will start at startOffset above
-// the clouds and end at endOffset above the clouds.
-function swarmParticlesToPoints(endPoints, startOffset, endOffset, startNow) {
-  // Create array of line segments between particles' start positions
-  // and the desired end position.
-  let lineCurves = [];
-  for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
-    let startPoint = particleCloud.mesh.geometry.vertices[i];
-    // Create a 3d line segment between the two points.
-    lineCurves.push(new THREE.LineCurve3(startPoint.clone(), endPoints[i].clone()));
-  }
-  // For each timestep, move the points to the spots along the line for
-  // that timestep, projected onto the clouds
-  let animation = new TWEEN.Tween({t: 0}).to({t: 1}, 800)
-    // .easing(TWEEN.Easing.Exponential.InOut)
-    .onUpdate(function (obj) {
-      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
-        let newPos = particleCloud.vertInClouds(
-          lineCurves[i].getPoint(obj.t),
-          startOffset + (endOffset - startOffset) * obj.t
-        );
-        particleCloud.mesh.geometry.vertices[i] = newPos;
-      }
-      particleCloud.mesh.geometry.verticesNeedUpdate = true;
-    });
-
-  if (startNow) {
-    animation.start();
-  }
-  return animation;
-}
-
 // Returns Tween that zooms camera from current position to endPosition.
 function zoomCamera(endPosition, zoomingIn, startNow) {
   let zoomAnimation = new TWEEN.Tween({currentZoom: camera.position.z})
@@ -236,23 +225,4 @@ function zoomCamera(endPosition, zoomingIn, startNow) {
     zoomAnimation.start();
   }
   return zoomAnimation;
-}
-
-// Returns Tween that expanda particles from startOffset above clouds to
-// endOffset above clouds
-function expandParticles(startOffset, endOffset, startNow) {
-  let expansionAnimation = new TWEEN.Tween({currentOffset: startOffset})
-    .to({currentOffset: endOffset}, 400)
-    .onUpdate(function(obj) {
-      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
-        let particlePos = particleCloud.mesh.geometry.vertices[i];
-        particleCloud.mesh.geometry.vertices[i] = particleCloud.vertInClouds(particlePos, obj.currentOffset);
-      }
-      particleCloud.mesh.geometry.verticesNeedUpdate = true
-    });
-
-  if (startNow) {
-    expansionAnimation.start();
-  }
-  return expansionAnimation;
 }
