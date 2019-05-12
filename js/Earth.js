@@ -1,6 +1,6 @@
 const WATER_COLOR = 0x4b7ccc;
 const CLOUD_DIST_ABOVE_EARTH = 0.01;
-const SPIN_ANIMATION_DURATION = 1000;
+const SPIN_ANIMATION_DURATION = 1500;
 
 function Earth(radius, isTopo, mapCanvas) {
   this.radius = radius;
@@ -33,6 +33,11 @@ function Earth(radius, isTopo, mapCanvas) {
 
   earthMat.map.needsUpdate = true;
   this.mesh = new THREE.Mesh(earthGeo, earthMat);
+}
+
+Earth.prototype.makeBlazers = function () {
+  this.mesh.material.map = new THREE.TextureLoader().load('images/blazers3.jpeg');
+  this.mesh.material.needsUpdate = true;
 }
 
 // Create and add the clouds
@@ -78,13 +83,15 @@ Earth.prototype.spinToPoint = function (startPoint, endPoint, startNow) {
 
   let euler = new THREE.Euler();
   let spinAnimation = new TWEEN.Tween(startQuant)
-    .to(endQuant, SPIN_ANIMATION_DURATION)
+    .to(endQuant, (1 - settings.animationSpeed) * 2 * SPIN_ANIMATION_DURATION)
     // .delay(500)
     // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function () {
       euler.setFromQuaternion(startQuant);
       currentEarth.mesh.setRotationFromEuler(euler);
-      currentEarth.waterMesh.setRotationFromEuler(euler);
+      if (currentEarth.waterMesh) {
+        currentEarth.waterMesh.setRotationFromEuler(euler);
+      }
     });
   if (startNow) {
     spinAnimation.start();

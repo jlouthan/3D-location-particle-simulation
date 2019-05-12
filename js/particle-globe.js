@@ -10,16 +10,25 @@ const NEAR = 0.01;
 const FAR = 1000;
 const EARTH_RAD = 0.99;
 const CLOUD_RAD = EARTH_RAD + 0.01;
-const NUM_PARTICLES = 1000;
 const EXPANSION_MAX = 0.2;
 const AMOUNT_POINT_ABOVE = 0.02;
-const ZOOM_ANIMATION_DURATION = 800;
+const ZOOM_ANIMATION_DURATION = 1200;
+const MAX_EARTH_ROTATION = 1;
 
 // Variables multiple functions need access to
 let earth;
 let particleCloud;
 let camera, renderer, scene, stats, gui;
 let isRotating = true;
+
+// Variables used by the dat.gui
+let settings = {
+  numParticles: 1000,
+  rotationSpeed: 0.2,
+  animationSpeed: 0.5,
+  secBetweenAnimations: 5,
+  globe: 'flat map'
+};
 
 // // Temp lat/longs
 // let latLongs = [
@@ -71,7 +80,7 @@ function initScene() {
     scene.add(dirLight);
 
     // Create and add the Earth
-    earth = new Earth(EARTH_RAD, false, worldMap.canvas);
+    earth = new Earth(EARTH_RAD, (settings.globe === 'topography'), worldMap.canvas);
     if (earth.waterMesh) {
       scene.add(earth.waterMesh);
     }
@@ -80,7 +89,7 @@ function initScene() {
 
     // Create and add the cloud of particles
     particleCloud = new ParticleCloud(
-      NUM_PARTICLES,
+      settings.numParticles,
       0.01,
       0xffffff,
       earth.cloudMesh,
@@ -94,7 +103,10 @@ function initScene() {
 
     // Add the gui for toggling parts of the simulation
     gui = new dat.GUI();
-    let countControl = gui.add(particleCloud, 'count', 0, 10000);
+    gui.add(settings, 'rotationSpeed', 0, 1);
+    gui.add(settings, 'animationSpeed', 0, 1);
+    gui.add(settings, 'secBetweenAnimations', 1, 10);
+    let countControl = gui.add(settings, 'numParticles', 0, 10000);
     countControl.onFinishChange(function (newCount) {
       earth.mesh.remove(particleCloud.mesh);
       let newCloud = new ParticleCloud(
@@ -106,6 +118,32 @@ function initScene() {
       );
       earth.mesh.add(newCloud.mesh);
       particleCloud = newCloud;
+    });
+    let earthControl = gui.add(settings, 'globe',
+      ['flat map', 'topography', 'blazers']
+    );
+    earthControl.onFinishChange(function (newMap) {
+      // Special case celebrating the Portland Trailblazers
+      if (newMap === 'blazers') {
+        earth.makeBlazers();
+        return;
+      }
+      scene.remove(earth.mesh);
+      if (earth.waterMesh) {
+        scene.remove(earth.waterMesh);
+      }
+      let newEarth = new Earth(
+        EARTH_RAD,
+        (newMap === 'topography'),
+        worldMap.canvas
+      );
+      if (newEarth.waterMesh) {
+        scene.add(newEarth.waterMesh);
+      }
+      scene.add(newEarth.mesh);
+      newEarth.addClouds();
+      newEarth.mesh.add(particleCloud.mesh);
+      earth = newEarth;
     });
 
 }
@@ -120,11 +158,19 @@ function render() {
   // Rotate the earth and clouds
   if (isRotating) {
     // Rotate Water
-    earth.waterMesh.rotateY(1/5 * timeDelta);
+    if (earth.waterMesh) {
+      earth.waterMesh.rotateY(
+        MAX_EARTH_ROTATION * settings.rotationSpeed * timeDelta
+      );
+    }
     // Rotate Earth
-    earth.mesh.rotateY(1/5 * timeDelta);
+    earth.mesh.rotateY(
+      MAX_EARTH_ROTATION * settings.rotationSpeed * timeDelta
+    );
     // Rotate clouds
-    earth.cloudMesh.rotateY(1/3 * timeDelta);
+    earth.cloudMesh.rotateY(
+      MAX_EARTH_ROTATION * 1.5 * settings.rotationSpeed * timeDelta
+    );
   }
 
   renderer.render(scene, camera);
@@ -132,9 +178,9 @@ function render() {
   TWEEN.update();
 
   // Kick off the particle animation for next lat, long pair if needed
-  if (currentDeltaLarge >= 10) {
-    console.log('10 sec elapsed');
-    currentDeltaLarge = 0;
+  if (currentDeltaLarge >= settings.secBetweenAnimations) {
+    // setting to Number.MIN_VALUE did not work for some reason
+    currentDeltaLarge = -1000000;
     // Repeat the animation if it's ended
     if (currentIndex >= latLongs.length) {
       currentIndex = 0;
@@ -194,6 +240,7 @@ function animateAwayFromPoint(point) {
         true,
       ).onComplete(function () {
         isRotating = true;
+        currentDeltaLarge = 0;
       });
     });
 }
@@ -201,7 +248,7 @@ function animateAwayFromPoint(point) {
 // Returns Tween that zooms camera from current position to endPosition.
 function zoomCamera(endPosition, zoomingIn, startNow) {
   let zoomAnimation = new TWEEN.Tween({currentZoom: camera.position.z})
-    .to({currentZoom: endPosition}, ZOOM_ANIMATION_DURATION)
+    .to({currentZoom: endPosition}, (1 - settings.animationSpeed) * 2 * ZOOM_ANIMATION_DURATION)
     .onUpdate(function(obj) {
       camera.position.z = obj.currentZoom;
     });

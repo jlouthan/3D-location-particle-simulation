@@ -1,8 +1,7 @@
-const EXPAND_ANIMATION_DURATION = 500;
-const SWARM_ANIMATION_DURATION = 750;
+const EXPAND_ANIMATION_DURATION = 750;
+const SWARM_ANIMATION_DURATION = 1125;
 
 function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
-  this.count = count;
   this.cloudMesh = cloudMesh;
   this.cloudRadius = cloudRadius;
   // Create and add some particles among the clouds
@@ -68,7 +67,7 @@ ParticleCloud.prototype.expand = function (startOffset, endOffset, startNow) {
   let cloud = this;
 
   let expansionAnimation = new TWEEN.Tween({currentOffset: startOffset})
-    .to({currentOffset: endOffset}, EXPAND_ANIMATION_DURATION)
+    .to({currentOffset: endOffset}, (1 - settings.animationSpeed) * 2 * EXPAND_ANIMATION_DURATION)
     .onUpdate(function(obj) {
       for (let i = 0; i < currentGeo.vertices.length; i++) {
         let particlePos = currentGeo.vertices[i];
@@ -101,7 +100,7 @@ ParticleCloud.prototype.swarmToPoints = function(endPoints, startOffset, endOffs
   }
   // For each timestep, move the points to the spots along the line for
   // that timestep, projected onto the clouds
-  let animation = new TWEEN.Tween({t: 0}).to({t: 1}, SWARM_ANIMATION_DURATION)
+  let animation = new TWEEN.Tween({t: 0}).to({t: 1}, (1 - settings.animationSpeed) * 2 * SWARM_ANIMATION_DURATION)
     // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function (obj) {
       for (let i = 0; i < currentGeo.vertices.length; i++) {
