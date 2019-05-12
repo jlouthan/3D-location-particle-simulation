@@ -18,7 +18,7 @@ const ZOOM_ANIMATION_DURATION = 800;
 // Variables multiple functions need access to
 let earth;
 let particleCloud;
-let camera, renderer, scene;
+let camera, renderer, scene, stats;
 let isRotating = true;
 
 // // Temp lat/longs
@@ -78,6 +78,7 @@ function initScene() {
     scene.add(earth.mesh);
     earth.addClouds();
 
+    // Create and add the cloud of particles
     particleCloud = new ParticleCloud(
       NUM_PARTICLES,
       0.01,
@@ -86,6 +87,10 @@ function initScene() {
       earth.cloudRadius
     );
     earth.mesh.add(particleCloud.mesh);
+
+    // Add the stats monitor
+    stats = new Stats();
+    document.body.appendChild(stats.dom);
 
 }
 
@@ -105,7 +110,9 @@ function render() {
     // Rotate clouds
     earth.cloudMesh.rotateY(1/3 * timeDelta);
   }
+
   renderer.render(scene, camera);
+  stats.update();
   TWEEN.update();
 
   // Kick off the particle animation for next lat, long pair if needed
