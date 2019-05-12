@@ -1,5 +1,6 @@
 const WATER_COLOR = 0x4b7ccc;
 const CLOUD_DIST_ABOVE_EARTH = 0.01;
+const SPIN_ANIMATION_DURATION = 1000;
 
 function Earth(radius, isTopo, mapCanvas) {
   this.radius = radius;
@@ -76,7 +77,8 @@ Earth.prototype.spinToPoint = function (startPoint, endPoint, startNow) {
   );
 
   let euler = new THREE.Euler();
-  let spinAnimation = new TWEEN.Tween(startQuant).to(endQuant, 1500)
+  let spinAnimation = new TWEEN.Tween(startQuant)
+    .to(endQuant, SPIN_ANIMATION_DURATION)
     // .delay(500)
     // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function () {

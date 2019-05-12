@@ -13,6 +13,7 @@ const CLOUD_RAD = EARTH_RAD + 0.01;
 const NUM_PARTICLES = 1000;
 const EXPANSION_MAX = 0.2;
 const AMOUNT_POINT_ABOVE = 0.02;
+const ZOOM_ANIMATION_DURATION = 800;
 
 // Variables multiple functions need access to
 let earth;
@@ -20,13 +21,15 @@ let particleCloud;
 let camera, renderer, scene;
 let isRotating = true;
 
-// Temp lat/longs
-let latLongs = [
-  [47.49801, 19.03991],
-  [29.951065, -90.071533],
-  [45.523064, -122.676483],
-  [40.332370, -74.656540]
-];
+// // Temp lat/longs
+// let latLongs = [
+//   [47.49801, 19.03991],
+//   [29.951065, -90.071533],
+//   [45.523064, -122.676483],
+//   [40.332370, -74.656540]
+// ];
+
+let latLongs = facebookLocations;
 
 // Initialize variables used to guide animations in render()
 let clock = new THREE.Clock();
@@ -113,6 +116,7 @@ function render() {
     if (currentIndex >= latLongs.length) {
       currentIndex = 0;
     }
+    console.log('about to show index: ', currentIndex);
     let zoomPoint = earth.pointFromLatLong(
       latLongs[currentIndex][0],
       latLongs[currentIndex][1]
@@ -174,7 +178,7 @@ function animateAwayFromPoint(point) {
 // Returns Tween that zooms camera from current position to endPosition.
 function zoomCamera(endPosition, zoomingIn, startNow) {
   let zoomAnimation = new TWEEN.Tween({currentZoom: camera.position.z})
-    .to({currentZoom: endPosition}, 1000)
+    .to({currentZoom: endPosition}, ZOOM_ANIMATION_DURATION)
     .onUpdate(function(obj) {
       camera.position.z = obj.currentZoom;
     });
