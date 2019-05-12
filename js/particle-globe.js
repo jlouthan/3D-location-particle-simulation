@@ -44,67 +44,16 @@ if (earth.waterMesh) {
   scene.add(earth.waterMesh);
 }
 scene.add(earth.mesh);
+earth.addClouds();
 
-// Create and add the clouds
-let cloudGeo = new THREE.SphereGeometry(CLOUD_RAD, 32, 32)
-let cloudMat  = new THREE.MeshPhongMaterial({
-  map : new THREE.TextureLoader().load('images/fair_clouds_4k.png'),
-  // side        : THREE.DoubleSide,
-  // opacity     : 0.8,
-  transparent : true,
-  // depthWrite  : false,
-});
-var cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-// earthMesh.add(cloudMesh)
-earth.mesh.add(cloudMesh)
-
-// Create and add some particles among the clouds
-let particleGeo = new THREE.Geometry();
-// TODO look at what all I can do with pointsmaterial! Opacity, etc.
-let particleMat = new THREE.PointsMaterial({
-  size: 0.01,
-  color: 0xffffff
-});
-cloudGeo.computeBoundingBox();
-let cloudMin = cloudGeo.boundingBox.min;
-let cloudMax = cloudGeo.boundingBox.max;
-
-// Project given Vector3 point onto sphereical cloud surface,
-// surfaceOffset above the clouds, e.g., surfaceOffset=0 will put
-// the point into the clouds
-function vertInClouds(point, surfaceOffset) {
-  // Get unit vector from sphere center to point, scale by sphere radius,
-  // and add to sphere center
-  return cloudMesh.position.clone().add(
-    point.sub(cloudMesh.position).normalize()
-    .multiplyScalar(CLOUD_RAD + surfaceOffset)
-  );
-}
-
-let initialPositions = [];
-for (let i = 0; i < NUM_PARTICLES; i++) {
-
-  // Get random point in cloud bounding box
-  let x = cloudMin.x +
-  Math.random() * (cloudMax.x - cloudMin.x);
-  let y = cloudMin.y +
-  Math.random() * (cloudMax.y - cloudMin.y);
-  let z = cloudMin.z +
-  Math.random() * (cloudMax.z - cloudMin.z);
-  let randomPos = new THREE.Vector3(x, y, z);
-  // Project it into the clouds and add to mesh
-  let particlePos = vertInClouds(randomPos, 0.01);
-  initialPositions.push(particlePos);
-  particleGeo.vertices.push(particlePos);
-
-};
-let particlesCloud = new THREE.Points(particleGeo, particleMat);
-// TODO must add to earth so swarming and rotating go to same point, but now
-// particles don't move with clouds. Fix somehow?
-// cloudMesh.add(particlesCloud);
-// earthMesh.add(particlesCloud);
-earth.mesh.add(particlesCloud);
-
+let particleCloud = new ParticleCloud(
+  NUM_PARTICLES,
+  0.01,
+  0xffffff,
+  earth.cloudMesh,
+  earth.cloudRadius
+);
+earth.mesh.add(particleCloud.mesh);
 
 // Render and update loop
 let clock = new THREE.Clock();
@@ -138,7 +87,7 @@ function render(){
     // Rotate Earth
     earth.mesh.rotateY(1/5 * timeDelta);
     // Rotate clouds
-    cloudMesh.rotateY(1/3 * timeDelta);
+    earth.cloudMesh.rotateY(1/3 * timeDelta);
   }
   if (isZooming) {
     camera.position.z -= 0.007;
@@ -161,13 +110,13 @@ function render(){
 
       // TODO refactor so there's not so much repeated here ad in swarm code
       let lineCurves = [];
-      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-        let startPoint = particlesCloud.geometry.vertices[i];
+      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+        let startPoint = particleCloud.mesh.geometry.vertices[i];
         // TODO could be replaced with simple updates in the render loop. Is that
         // better or should I use Tween for everything for consistency??
         // Create a 3d line segment between the two points.
         lineCurves.push(
-          new THREE.LineCurve3(startPoint.clone(), initialPositions[i].clone())
+          new THREE.LineCurve3(startPoint.clone(), particleCloud.initialPositions[i].clone())
         );
       }
       // For each timestep, move the points to the spots along the line for
@@ -176,14 +125,14 @@ function render(){
       let animation = new TWEEN.Tween({t: 0}).to({t: 1}, 1000)
         // .easing(TWEEN.Easing.Exponential.InOut)
         .onUpdate(function (obj) {
-          for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-            let newPos = vertInClouds(
+          for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+            let newPos = particleCloud.vertInClouds(
               lineCurves[i].getPoint(obj.t),
               amountAbove + obj.t * (EXPANSION_MAX - amountAbove)
             );
-            particlesCloud.geometry.vertices[i] = newPos;
+            particleCloud.mesh.geometry.vertices[i] = newPos;
           }
-          particlesCloud.geometry.verticesNeedUpdate = true;
+          particleCloud.mesh.geometry.verticesNeedUpdate = true;
         });
 
       animation
@@ -204,11 +153,11 @@ function render(){
       swarmParticlesToPoint(zoomPoint.clone());
     } else {
       expansionOffset += 0.009;
-      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-        let particlePos = particlesCloud.geometry.vertices[i];
-        particlesCloud.geometry.vertices[i] = vertInClouds(particlePos, expansionOffset);
+      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+        let particlePos = particleCloud.mesh.geometry.vertices[i];
+        particleCloud.mesh.geometry.vertices[i] = particleCloud.vertInClouds(particlePos, expansionOffset);
       }
-      particlesCloud.geometry.verticesNeedUpdate = true
+      particleCloud.mesh.geometry.verticesNeedUpdate = true
     }
   }
   if (shrinkingParticles) {
@@ -217,11 +166,11 @@ function render(){
       shrinkingOffset = EXPANSION_MAX;
     } else {
       shrinkingOffset -= 0.009;
-      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-        let particlePos = particlesCloud.geometry.vertices[i];
-        particlesCloud.geometry.vertices[i] = vertInClouds(particlePos, shrinkingOffset);
+      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+        let particlePos = particleCloud.mesh.geometry.vertices[i];
+        particleCloud.mesh.geometry.vertices[i] = particleCloud.vertInClouds(particlePos, shrinkingOffset);
       }
-      particlesCloud.geometry.verticesNeedUpdate = true
+      particleCloud.mesh.geometry.verticesNeedUpdate = true
     }
   }
   renderer.render(scene, camera);
@@ -290,12 +239,12 @@ function swarmParticlesToPoint(point) {
   // TODO play with this
   isRotating = false;
   let amountAbove = 0.02;
-  let endPoint = vertInClouds(point, amountAbove);
+  let endPoint = particleCloud.vertInClouds(point, amountAbove);
   // Create array of line segments between particles' start positions
   // and the desired end position.
   let lineCurves = [];
-  for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-    let startPoint = particlesCloud.geometry.vertices[i];
+  for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+    let startPoint = particleCloud.mesh.geometry.vertices[i];
     // TODO could be replaced with simple updates in the render loop. Is that
     // better or should I use Tween for everything for consistency??
     // Create a 3d line segment between the two points.
@@ -306,14 +255,14 @@ function swarmParticlesToPoint(point) {
   let animation = new TWEEN.Tween({t: 0}).to({t: 1}, 1000)
     // .easing(TWEEN.Easing.Exponential.InOut)
     .onUpdate(function (obj) {
-      for (let i = 0; i < particlesCloud.geometry.vertices.length; i++) {
-        let newPos = vertInClouds(
+      for (let i = 0; i < particleCloud.mesh.geometry.vertices.length; i++) {
+        let newPos = particleCloud.vertInClouds(
           lineCurves[i].getPoint(obj.t),
           EXPANSION_MAX - (EXPANSION_MAX - amountAbove) * obj.t
         );
-        particlesCloud.geometry.vertices[i] = newPos;
+        particleCloud.mesh.geometry.vertices[i] = newPos;
       }
-      particlesCloud.geometry.verticesNeedUpdate = true;
+      particleCloud.mesh.geometry.verticesNeedUpdate = true;
     });
 
   let rotation = spinToPoint(

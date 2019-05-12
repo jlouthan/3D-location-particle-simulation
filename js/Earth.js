@@ -1,9 +1,14 @@
 const WATER_COLOR = 0x4b7ccc;
+const CLOUD_DIST_ABOVE_EARTH = 0.01;
 
 function Earth(radius, isTopo, mapCanvas) {
+  this.radius = radius;
+  this.cloudRadius = radius + CLOUD_DIST_ABOVE_EARTH;
+
   let earthGeo = new THREE.SphereGeometry(radius, 32, 32);
   let earthMat;
 
+  // Use texture according to args passed
   if (isTopo) {
     earthMat = new THREE.MeshPhongMaterial({
       map: new THREE.TextureLoader().load('images/earthmap1k.jpg'),
@@ -24,7 +29,21 @@ function Earth(radius, isTopo, mapCanvas) {
       transparent: true
     });
   }
-  
+
   earthMat.map.needsUpdate = true;
   this.mesh = new THREE.Mesh(earthGeo, earthMat);
+}
+
+// Create and add the clouds
+Earth.prototype.addClouds = function () {
+  let cloudGeo = new THREE.SphereGeometry(this.cloudRadius, 32, 32);
+  let cloudMat = new THREE.MeshPhongMaterial({
+    map : new THREE.TextureLoader().load('images/fair_clouds_4k.png'),
+    // side        : THREE.DoubleSide,
+    // opacity     : 0.8,
+    transparent : true,
+    // depthWrite  : false,
+  });
+  this.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+  this.mesh.add(this.cloudMesh);
 }
