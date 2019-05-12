@@ -18,7 +18,7 @@ const ZOOM_ANIMATION_DURATION = 800;
 // Variables multiple functions need access to
 let earth;
 let particleCloud;
-let camera, renderer, scene, stats;
+let camera, renderer, scene, stats, gui;
 let isRotating = true;
 
 // // Temp lat/longs
@@ -91,6 +91,22 @@ function initScene() {
     // Add the stats monitor
     stats = new Stats();
     document.body.appendChild(stats.dom);
+
+    // Add the gui for toggling parts of the simulation
+    gui = new dat.GUI();
+    let countControl = gui.add(particleCloud, 'count', 0, 10000);
+    countControl.onFinishChange(function (newCount) {
+      earth.mesh.remove(particleCloud.mesh);
+      let newCloud = new ParticleCloud(
+        Math.round(newCount),
+        0.01,
+        0xffffff,
+        earth.cloudMesh,
+        earth.cloudRadius
+      );
+      earth.mesh.add(newCloud.mesh);
+      particleCloud = newCloud;
+    });
 
 }
 

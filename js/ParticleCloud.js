@@ -2,6 +2,7 @@ const EXPAND_ANIMATION_DURATION = 500;
 const SWARM_ANIMATION_DURATION = 750;
 
 function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
+  this.count = count;
   this.cloudMesh = cloudMesh;
   this.cloudRadius = cloudRadius;
   // Create and add some particles among the clouds
