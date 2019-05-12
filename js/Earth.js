@@ -46,4 +46,46 @@ Earth.prototype.addClouds = function () {
   });
   this.cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
   this.mesh.add(this.cloudMesh);
+};
+
+// Returns Vector3 point on surface of earth mesh from
+// given lat, long
+Earth.prototype.pointFromLatLong = function (lat, long) {
+  // Formula from https://stackoverflow.com/questions/28365948/javascript-latitude-longitude-to-xyz-position-on-earth-threejs
+  var phi   = (90 - lat) * (Math.PI/180);
+  var theta = (long + 180) * (Math.PI/180);
+  let radius = this.cloudRadius;
+  let x = -((radius) * Math.sin(phi) * Math.cos(theta));
+  let z = ((radius) * Math.sin(phi) * Math.sin(theta));
+  let y = ((radius) * Math.cos(phi));
+  return new THREE.Vector3(x, y, z);
+}
+
+// Given a Vector3 startPoint and endPoint on the sphere, return Tween that
+// spins the world around so that endPoint becomes startPoint
+// Rotation code adapted from https://discourse.threejs.org/t/solved-using-quaternions-approach-to-rotate-sphere-from-clicked-point-towards-static-point/3272/8
+Earth.prototype.spinToPoint = function (startPoint, endPoint, startNow) {
+  let currentEarth = this;
+  let startQuant = new THREE.Quaternion();
+  startQuant.copy(currentEarth.mesh.quaternion).normalize();
+
+  let endQuant = new THREE.Quaternion();
+  endQuant.setFromUnitVectors(
+    endPoint.clone().normalize(),
+    startPoint.clone().normalize()
+  );
+
+  let euler = new THREE.Euler();
+  let spinAnimation = new TWEEN.Tween(startQuant).to(endQuant, 1500)
+    // .delay(500)
+    // .easing(TWEEN.Easing.Exponential.InOut)
+    .onUpdate(function () {
+      euler.setFromQuaternion(startQuant);
+      currentEarth.mesh.setRotationFromEuler(euler);
+      currentEarth.waterMesh.setRotationFromEuler(euler);
+    });
+  if (startNow) {
+    spinAnimation.start();
+  }
+  return spinAnimation;
 }
