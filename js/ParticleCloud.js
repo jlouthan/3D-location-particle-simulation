@@ -12,8 +12,7 @@ function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
     size: particleSize,
     color: color,
     map: new THREE.TextureLoader()
-    // .load("images/lillard-face.png"),
-    .load("images/spark.png"),
+      .load("images/spark.png"),
     blending: THREE.AdditiveBlending,
     // alphaTest helps A LOT to remove square particle overlapping effect
     alphaTest: 0.5,
@@ -43,23 +42,6 @@ function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
   }
 
   this.mesh = new THREE.Points(particleGeo, particleMat);
-}
-
-// Special case celebrating the Portland Trailblazers
-// (just for fun)
-ParticleCloud.prototype.setBlazersMode = function (isBlazers) {
-  if (isBlazers) {
-    this.mesh.material.size = this.particleSize * 3;
-    this.mesh.material.transparent = false;
-    this.mesh.material.map = new THREE.TextureLoader()
-      .load("images/lillard-face.png");
-  } else {
-    this.mesh.material.size = this.particleSize;
-    this.mesh.material.transparent = true;
-    this.mesh.material.map = new THREE.TextureLoader()
-      .load("images/spark.png");
-  }
-  this.mesh.material.needsUpdate = true;
 }
 
 // Project given Vector3 point onto sphereical cloud surface,
@@ -161,4 +143,33 @@ ParticleCloud.prototype.swarmToPoints = function(endPoints, startOffset, endOffs
     animation.start();
   }
   return animation;
+}
+
+ParticleCloud.prototype.setStarfield = function (isStarfield) {
+  if (isStarfield) {
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/snowflake1.png");
+    this.expand(0, 0.5, true);
+  } else {
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/spark.png");
+  }
+  this.mesh.material.needsUpdate = true;
+}
+
+// Special case celebrating the Portland Trailblazers
+// (just for fun)
+ParticleCloud.prototype.setBlazersMode = function (isBlazers) {
+  if (isBlazers) {
+    this.mesh.material.size = this.particleSize * 3;
+    this.mesh.material.transparent = false;
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/lillard-face.png");
+  } else {
+    this.mesh.material.size = this.particleSize;
+    this.mesh.material.transparent = true;
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/spark.png");
+  }
+  this.mesh.material.needsUpdate = true;
 }

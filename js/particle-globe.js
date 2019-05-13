@@ -28,7 +28,8 @@ let settings = {
   rotationSpeed: 0.2,
   animationSpeed: 0.5,
   secBetweenAnimations: 5,
-  globe: 'flat map'
+  globe: 'flat map',
+  starFieldState: false
 };
 
 let latLongs = facebookLocations;
@@ -93,58 +94,8 @@ function initScene() {
     // Add the stats monitor
     stats = new Stats();
     document.body.appendChild(stats.dom);
-
-    // Add the gui for toggling parts of the simulation
-    gui = new dat.GUI();
-    gui.add(settings, 'rotationSpeed', 0, 1);
-    gui.add(settings, 'animationSpeed', 0, 1);
-    gui.add(settings, 'secBetweenAnimations', 1, 10);
-    let countControl = gui.add(settings, 'numParticles', 0, 10000);
-    countControl.onFinishChange(function (newCount) {
-      earth.mesh.remove(particleCloud.mesh);
-      let newCloud = new ParticleCloud(
-        Math.round(newCount),
-        settings.particleSize,
-        0xffffff,
-        earth.cloudMesh,
-        earth.cloudRadius
-      );
-      if (settings.globe === 'blazers') {
-        newCloud.setBlazersMode(true);
-      }
-      earth.mesh.add(newCloud.mesh);
-      particleCloud = newCloud;
-    });
-    let earthControl = gui.add(settings, 'globe',
-      ['flat map', 'topography', 'blazers']
-    );
-    earthControl.onFinishChange(function (newMap) {
-      // Special case celebrating the Portland Trailblazers
-      if (newMap === 'blazers') {
-        earth.makeBlazers();
-        particleCloud.setBlazersMode(true);
-        return;
-      } else {
-        particleCloud.setBlazersMode(false);
-      }
-      scene.remove(earth.mesh);
-      if (earth.waterMesh) {
-        scene.remove(earth.waterMesh);
-      }
-      let newEarth = new Earth(
-        EARTH_RAD,
-        (newMap === 'topography'),
-        worldMap.canvas
-      );
-      if (newEarth.waterMesh) {
-        scene.add(newEarth.waterMesh);
-      }
-      scene.add(newEarth.mesh);
-      newEarth.addClouds();
-      newEarth.mesh.add(particleCloud.mesh);
-      earth = newEarth;
-    });
-
+    // Add the dat.gui
+    Gui.setup();
 }
 
 // Render and update loop
@@ -179,7 +130,7 @@ function render() {
   TWEEN.update();
 
   // Kick off the particle animation for next lat, long pair if needed
-  if (currentDeltaLarge >= settings.secBetweenAnimations) {
+  if (!settings.starFieldState && currentDeltaLarge >= settings.secBetweenAnimations) {
     // setting to Number.MIN_VALUE did not work for some reason
     currentDeltaLarge = -1000000;
     // Repeat the animation if it's ended
