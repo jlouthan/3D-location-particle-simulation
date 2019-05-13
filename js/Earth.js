@@ -35,6 +35,8 @@ function Earth(radius, isTopo, mapCanvas) {
   this.mesh = new THREE.Mesh(earthGeo, earthMat);
 }
 
+// Special case celebrating the Portland Trailblazers
+// (just for fun)
 Earth.prototype.makeBlazers = function () {
   this.mesh.material.map = new THREE.TextureLoader().load('images/blazers3.jpeg');
   this.mesh.material.needsUpdate = true;

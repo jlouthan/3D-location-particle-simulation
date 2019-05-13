@@ -24,19 +24,12 @@ let isRotating = true;
 // Variables used by the dat.gui
 let settings = {
   numParticles: 1000,
+  particleSize: 0.02,
   rotationSpeed: 0.2,
   animationSpeed: 0.5,
   secBetweenAnimations: 5,
   globe: 'flat map'
 };
-
-// // Temp lat/longs
-// let latLongs = [
-//   [47.49801, 19.03991],
-//   [29.951065, -90.071533],
-//   [45.523064, -122.676483],
-//   [40.332370, -74.656540]
-// ];
 
 let latLongs = facebookLocations;
 
@@ -90,7 +83,7 @@ function initScene() {
     // Create and add the cloud of particles
     particleCloud = new ParticleCloud(
       settings.numParticles,
-      0.01,
+      settings.particleSize,
       0xffffff,
       earth.cloudMesh,
       earth.cloudRadius
@@ -111,11 +104,14 @@ function initScene() {
       earth.mesh.remove(particleCloud.mesh);
       let newCloud = new ParticleCloud(
         Math.round(newCount),
-        0.01,
+        settings.particleSize,
         0xffffff,
         earth.cloudMesh,
         earth.cloudRadius
       );
+      if (settings.globe === 'blazers') {
+        newCloud.setBlazersMode(true);
+      }
       earth.mesh.add(newCloud.mesh);
       particleCloud = newCloud;
     });
@@ -126,7 +122,10 @@ function initScene() {
       // Special case celebrating the Portland Trailblazers
       if (newMap === 'blazers') {
         earth.makeBlazers();
+        particleCloud.setBlazersMode(true);
         return;
+      } else {
+        particleCloud.setBlazersMode(false);
       }
       scene.remove(earth.mesh);
       if (earth.waterMesh) {
@@ -157,6 +156,7 @@ function render() {
 
   // Rotate the earth and clouds
   if (isRotating) {
+    particleCloud.jiggleUpdate();
     // Rotate Water
     if (earth.waterMesh) {
       earth.waterMesh.rotateY(
@@ -173,6 +173,7 @@ function render() {
     );
   }
 
+  // particleCloud.jiggleUpdate();
   renderer.render(scene, camera);
   stats.update();
   TWEEN.update();

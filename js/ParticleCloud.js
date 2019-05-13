@@ -2,6 +2,7 @@ const EXPAND_ANIMATION_DURATION = 750;
 const SWARM_ANIMATION_DURATION = 1125;
 
 function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
+  this.particleSize = particleSize;
   this.cloudMesh = cloudMesh;
   this.cloudRadius = cloudRadius;
   // Create and add some particles among the clouds
@@ -9,7 +10,15 @@ function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
   // TODO look at what all I can do with pointsmaterial! Opacity, etc.
   let particleMat = new THREE.PointsMaterial({
     size: particleSize,
-    color: color
+    color: color,
+    map: new THREE.TextureLoader()
+    // .load("images/lillard-face.png"),
+    .load("images/spark.png"),
+    blending: THREE.AdditiveBlending,
+    // alphaTest helps A LOT to remove square particle overlapping effect
+    alphaTest: 0.5,
+    transparent: true
+    // depthTest: false
   });
 
   this.cloudMesh.geometry.computeBoundingBox();
@@ -36,6 +45,23 @@ function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
   this.mesh = new THREE.Points(particleGeo, particleMat);
 }
 
+// Special case celebrating the Portland Trailblazers
+// (just for fun)
+ParticleCloud.prototype.setBlazersMode = function (isBlazers) {
+  if (isBlazers) {
+    this.mesh.material.size = this.particleSize * 3;
+    this.mesh.material.transparent = false;
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/lillard-face.png");
+  } else {
+    this.mesh.material.size = this.particleSize;
+    this.mesh.material.transparent = true;
+    this.mesh.material.map = new THREE.TextureLoader()
+      .load("images/spark.png");
+  }
+  this.mesh.material.needsUpdate = true;
+}
+
 // Project given Vector3 point onto sphereical cloud surface,
 // surfaceOffset above the clouds, e.g., surfaceOffset=0 will put
 // the point into the clouds, surfaceOffset > 0 will hover it above
@@ -57,6 +83,24 @@ ParticleCloud.prototype.getCopiesOfPointInClouds = function (point, surfaceOffse
     pointCopies.push(this.vertInClouds(point.clone(), surfaceOffset));
   }
   return pointCopies;
+}
+
+ParticleCloud.prototype.jiggleUpdate = function () {
+  // Move around particles w/ Brownian motion
+  for (let i = 0; i < this.mesh.geometry.vertices.length; i++) {
+    let particle = this.mesh.geometry.vertices[i];
+    let dX = Math.random() * 0.008 - 0.004;
+    let dY = Math.random() * 0.008 - 0.004;
+    let dZ = Math.random() * 0.008 - 0.004;
+    particle.add(new THREE.Vector3(dX, dY, dZ));
+    // Colors change randomly each frame
+    this.mesh.geometry.colors[i] = new THREE.Color(
+      Math.random(),
+      Math.random(),
+      Math.random()
+    );
+  }
+  this.mesh.geometry.verticesNeedUpdate = true;
 }
 
 // Returns Tween that expanda particles from startOffset above clouds to
