@@ -51,6 +51,7 @@ worldMap.createDrawing().then(function () {
 });
 
 function initScene() {
+
   // Create a scene with a camera and renderer
     scene = new THREE.Scene();
     camera	= new THREE.PerspectiveCamera(
@@ -142,7 +143,10 @@ function render() {
       latLongs[currentIndex][0],
       latLongs[currentIndex][1]
     );
+    // Set the label for the current point
+    document.getElementById('label').innerHTML = latLongs[currentIndex][2] || "";
     animateToPoint(zoomPoint, function () {
+      document.getElementById('label').innerHTML = "";
       animateAwayFromPoint(zoomPoint);
     });
     currentIndex++;

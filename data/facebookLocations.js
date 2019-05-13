@@ -1,18 +1,18 @@
 const facebookLocations = [
-  [40.008, -75.104], // princeton
+  [40.008, -75.104, 'Princeton, NJ'], // princeton
   // [40.36, -74.664],
 
 // [40.664, -73.872],
 
-[35.48, -97.52], // edmond
+[35.48, -97.52, "Edmond, OK"], // edmond
 
 // [35.656, -97.52],
 
-[29.944, -90.048], // New Orleans
+[29.944, -90.048, "New Orleans, LA"], // New Orleans
 
-[36.144, -86.792], // Nashville
+[36.144, -86.792, "Nashville, TN"], // Nashville
 
-[39.92, -75.368], // Princeton
+[39.92, -75.368, "Princeton, NJ"], // Princeton
 
 // [40.232, -74.664],
 
