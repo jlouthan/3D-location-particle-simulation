@@ -44,8 +44,6 @@ let worldMap = new WorldMap();
 worldMap.createDrawing().then(function () {
 
   initScene();
-  // TODO in the end, after all animation, particles expand out infinitely and
-  // become stars!
   render();
 
 });
@@ -67,7 +65,6 @@ function initScene() {
     document.body.appendChild(renderer.domElement);
 
     // Add some light
-    // TODO: play with this so it's not exactly same as demo
     let light	= new THREE.AmbientLight(0x888888);
     scene.add(light);
     let dirLight	= new THREE.DirectionalLight(0xcccccc, 0.5);
