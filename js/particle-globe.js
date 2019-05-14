@@ -1,9 +1,3 @@
-// https://github.com/jeromeetienne/threex.planets
-// http://learningthreejs.com/blog/2013/09/16/how-to-make-the-earth-in-webgl/
-// http://blog.mastermaps.com/2013/09/creating-webgl-earth-with-threejs.html
-// https://www.delimited.io/blog/2015/5/16/interactive-webgl-globes-with-threejs-and-d3
-// http://bl.ocks.org/MaciejKus/61e9ff1591355b00c1c1caf31e76a668
-
 // Constants
 const FIELD_OF_VIEW = 100;
 const NEAR = 0.01;

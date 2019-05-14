@@ -7,7 +7,6 @@ function ParticleCloud(count, particleSize, color, cloudMesh, cloudRadius) {
   this.cloudRadius = cloudRadius;
   // Create and add some particles among the clouds
   let particleGeo = new THREE.Geometry();
-  // TODO look at what all I can do with pointsmaterial! Opacity, etc.
   let particleMat = new THREE.PointsMaterial({
     size: particleSize,
     color: color,
@@ -87,7 +86,6 @@ ParticleCloud.prototype.jiggleUpdate = function () {
 
 // Returns Tween that expanda particles from startOffset above clouds to
 // endOffset above clouds. Kicks off animation immediately if startNow=true.
-// TODO play with animation length
 ParticleCloud.prototype.expand = function (startOffset, endOffset, startNow) {
   let currentGeo = this.mesh.geometry;
   let cloud = this;
