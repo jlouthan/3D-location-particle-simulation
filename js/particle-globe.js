@@ -23,10 +23,12 @@ let settings = {
   animationSpeed: 0.5,
   secBetweenAnimations: 5,
   globe: 'flat map',
-  starFieldState: false
+  starFieldState: false,
+  data: "Jenny's Facebook"
 };
 
 let latLongs = facebookLocations;
+// let latLongs = sevenWonders;
 
 // Initialize variables used to guide animations in render()
 let clock = new THREE.Clock();

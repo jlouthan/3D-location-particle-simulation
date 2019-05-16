@@ -60,5 +60,15 @@ let Gui = {
     starFieldControl.onFinishChange(function (showMeStars) {
       particleCloud.setStarfield(showMeStars);
     });
+    // Toggle between Facebook data and Seven wonders of natural world
+    let dataControl = gui.add(settings, 'data', ["Jenny's Facebook", "Seven Natural Wonders"]);
+    dataControl.onFinishChange(function (newSource) {
+      if (newSource === "Seven Natural Wonders") {
+        latLongs = sevenWonders;
+      } else {
+        latLongs = facebookLocations;
+      }
+      currentIndex = 0;
+    });
   }
 }
